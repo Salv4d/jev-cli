@@ -4,7 +4,7 @@ title: "Documentación jev-cli"
 description: "Guía completa para usar la herramienta jev-cli para el modelo Jev de TypeSafe."
 ---
 
-[English](/jev-cli/) | [Português](/jev-cli/pt-br/) | [Español](/jev-cli/es/)
+[English](/jev-cli/) | [Português](/jev-cli/pt-br/) | [Español](/jev-cli/es/) | [中文](/jev-cli/zh/)
 
 # Documentación jev-cli
 
