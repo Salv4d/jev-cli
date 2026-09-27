@@ -3,7 +3,7 @@
 A command-line interface tool in Rust to query the TypeSafe Jev model locally or via OpenRouter.
 
 > 📖 **Official Documentation:** 
-> [English](https://Salv4d.github.io/jev-cli/) | [Português](https://Salv4d.github.io/jev-cli/pt-br/) | [Español](https://Salv4d.github.io/jev-cli/es/) | [中文](https://Salv4d.github.io/jev-cli/zh/)
+> [🇺🇸 English](https://Salv4d.github.io/jev-cli/) | [🇧🇷 Português](https://Salv4d.github.io/jev-cli/pt-br/) | [🇪🇸 Español](https://Salv4d.github.io/jev-cli/es/) | [🇨🇳 中文](https://Salv4d.github.io/jev-cli/zh/)
 
 ## Table of Contents
 - [Features](#features)

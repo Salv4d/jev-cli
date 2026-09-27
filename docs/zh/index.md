@@ -4,7 +4,7 @@ title: "jev-cli 文档"
 description: "使用 jev-cli 工具调用 TypeSafe Jev 模型的全面指南。"
 ---
 
-[English](/jev-cli/) | [Português](/jev-cli/pt-br/) | [Español](/jev-cli/es/) | [中文](/jev-cli/zh/)
+[🇺🇸 English](/jev-cli/) | [🇧🇷 Português](/jev-cli/pt-br/) | [🇪🇸 Español](/jev-cli/es/) | [🇨🇳 中文](/jev-cli/zh/)
 
 # jev-cli 文档
 
