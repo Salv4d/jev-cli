@@ -1,7 +1,8 @@
 use anyhow::{Context, Result};
-use clap::{Parser, ValueEnum};
+use clap::Parser;
 use dotenvy::dotenv;
-use std::env;
+use reqwest::Client;
+use serde_json::{json, Value};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Provider {
@@ -30,7 +31,7 @@ impl std::fmt::Display for Provider {
     }
 }
 
-#[derive(Debug, Clone, ValueEnum, PartialEq, Eq)]
+#[derive(Debug, Clone, clap::ValueEnum, PartialEq, Eq)]
 enum QuestionKind {
     Noul,
     Choice,
@@ -49,19 +50,30 @@ struct Args {
     #[arg(short, long, env = "JEV_PROVIDER", default_value = "typesafe.ai")]
     provider: Provider,
 
-    /// The state to pass (e.g., a JSON string or path to a state file).
+    /// The specific model to use. Optional. Falls back to provider defaults if not set.
+    #[arg(short, long, env = "JEV_MODEL")]
+    model: Option<String>,
+
+    /// The state to evaluate (e.g., a JSON string or text).
     #[arg(short, long)]
     state: String,
 
-    /// The kind of question to ask.
+    /// The kind of question to ask (noul, choice, score).
     #[arg(short, long, value_enum)]
     kind: QuestionKind,
+
+    /// Instructions for the question.
+    #[arg(short, long, default_value = "Evaluate the state")]
+    instructions: String,
+
+    /// Criteria for Choice or Score kinds (format as JSON string array or object).
+    #[arg(short, long)]
+    criteria: Option<String>,
 }
 
-fn main() -> Result<()> {
-    // Load environment variables from .env file if it exists
+#[tokio::main]
+async fn main() -> Result<()> {
     let _ = dotenv();
-
     let args = Args::parse();
 
     if args.token.trim().is_empty() {
@@ -69,27 +81,69 @@ fn main() -> Result<()> {
         std::process::exit(1);
     }
 
-    // Print debug information to stderr so it doesn't interfere with stdout payloads
-    eprintln!("✓ Validating Environment...");
-    eprintln!("  Provider: {}", args.provider);
-    eprintln!("  Kind: {:?}", args.kind);
-    eprintln!("  State loaded.");
+    let (endpoint, default_model) = match args.provider {
+        Provider::TypesafeAi => (
+            "https://api.typesafe.ai/v1/systemone",
+            "jev-latest",
+        ),
+        Provider::Openrouter => (
+            "https://openrouter.ai/api/alpha/decisions",
+            "typesafe/jev-latest",
+        ),
+    };
 
-    // The actual output (to stdout) varies depending on the kind of question asked.
-    match args.kind {
-        QuestionKind::Noul => {
-            // Noul (e.g., standard generation or free text response)
-            println!(r#"{{ "status": "success", "type": "noul", "response": "Simulated free-text response for noul based on state: {}" }}"#, args.state);
-        }
-        QuestionKind::Choice => {
-            // Choice (e.g., A, B, C, D)
-            println!(r#"{{ "status": "success", "type": "choice", "selected_option": "A", "confidence": 0.95 }}"#);
-        }
-        QuestionKind::Score => {
-            // Score (e.g., 0.0 to 1.0 or 1-10)
-            println!(r#"{{ "status": "success", "type": "score", "score": 8.5, "max_score": 10.0 }}"#);
+    let model = args.model.unwrap_or_else(|| default_model.to_string());
+
+    // Build the "q1" object based on kind
+    let mut q1 = serde_json::Map::new();
+    
+    let kind_str = match args.kind {
+        QuestionKind::Noul => "noul",
+        QuestionKind::Choice => "choice",
+        QuestionKind::Score => "score",
+    };
+    q1.insert("type".to_string(), json!(kind_str));
+    q1.insert("instructions".to_string(), json!(args.instructions));
+
+    if args.kind == QuestionKind::Choice || args.kind == QuestionKind::Score {
+        if let Some(criteria_str) = &args.criteria {
+            let parsed_criteria: Value = serde_json::from_str(criteria_str).context("Criteria must be valid JSON")?;
+            q1.insert("criteria".to_string(), parsed_criteria);
+        } else {
+            eprintln!("Error: --criteria is required for choice and score kinds.");
+            std::process::exit(1);
         }
     }
+
+    let request_body = json!({
+        "model": model,
+        "state": args.state,
+        "questions": {
+            "q1": q1
+        }
+    });
+
+    let client = Client::new();
+    let res = client
+        .post(endpoint)
+        .header("Authorization", format!("Bearer {}", args.token))
+        .header("Content-Type", "application/json")
+        .json(&request_body)
+        .send()
+        .await
+        .context("Failed to send request")?;
+
+    if !res.status().is_success() {
+        let status = res.status();
+        let body = res.text().await.unwrap_or_default();
+        eprintln!("Error response from API: {} - {}", status, body);
+        std::process::exit(1);
+    }
+
+    let response_json: Value = res.json().await.context("Failed to parse JSON response")?;
     
+    // Output the formatted JSON cleanly to stdout
+    println!("{}", serde_json::to_string_pretty(&response_json).unwrap());
+
     Ok(())
 }
