@@ -172,9 +172,9 @@ While the positional shorthand syntax is great for humans typing in the terminal
 
 The CLI fully supports long-form arguments:
 ```bash
-jev --state "I want a car." --instructions "Does this text express desire?" --kind noul
-jev --state "Text" --instructions "Question" --kind choice --criteria '{"A":"Yes", "B":"No"}'
-jev --state "Text" --instructions "Question" --kind score --criteria '["Bad", "Good"]'
+jev --state "I want a car." --instructions "Does this text express desire?" --type noul
+jev --state "Text" --instructions "Question" --type choice --criteria '{"A":"Yes", "B":"No"}'
+jev --state "Text" --instructions "Question" --type score --criteria '["Bad", "Good"]'
 ```
 
 ---

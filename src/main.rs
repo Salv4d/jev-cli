@@ -57,7 +57,7 @@ struct Args {
     explicit_instructions: Option<String>,
 
     /// Explicitly define the kind (noul, choice, score).
-    #[arg(long = "kind")]
+    #[arg(long = "type")]
     explicit_kind: Option<String>,
 
     /// Explicitly provide criteria as a raw JSON string (dict for choice, array for score).

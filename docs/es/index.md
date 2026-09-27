@@ -172,9 +172,9 @@ Aunque la sintaxis posicional corta es excelente para humanos escribiendo en la 
 
 El CLI soporta completamente los argumentos largos (flags):
 ```bash
-jev --state "Quiero un coche." --instructions "¿Esto expresa deseo?" --kind noul
-jev --state "Texto" --instructions "Pregunta" --kind choice --criteria '{"A":"Sí", "B":"No"}'
-jev --state "Texto" --instructions "Pregunta" --kind score --criteria '["Malo", "Bueno"]'
+jev --state "Quiero un coche." --instructions "¿Esto expresa deseo?" --type noul
+jev --state "Texto" --instructions "Pregunta" --type choice --criteria '{"A":"Sí", "B":"No"}'
+jev --state "Texto" --instructions "Pregunta" --type score --criteria '["Malo", "Bueno"]'
 ```
 
 ---

@@ -172,9 +172,9 @@ jev "错误 503: 服务不可用" "系统应该怎么做？" "立即重试" "指
 
 CLI 完全支持长格式参数：
 ```bash
-jev --state "我想要一辆车。" --instructions "这表达了渴望吗？" --kind noul
-jev --state "文本" --instructions "问题" --kind choice --criteria '{"A":"是", "B":"否"}'
-jev --state "文本" --instructions "问题" --kind score --criteria '["差", "好"]'
+jev --state "我想要一辆车。" --instructions "这表达了渴望吗？" --type noul
+jev --state "文本" --instructions "问题" --type choice --criteria '{"A":"是", "B":"否"}'
+jev --state "文本" --instructions "问题" --type score --criteria '["差", "好"]'
 ```
 
 ---
