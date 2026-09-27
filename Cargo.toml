@@ -1,0 +1,12 @@
+[package]
+name = "jev-cli"
+version = "0.1.0"
+edition = "2021"
+description = "A CLI tool to interact with Typesafe.ai and OpenRouter"
+repository = "https://github.com/Salv4d/jev-cli"
+license = "MIT"
+
+[dependencies]
+clap = { version = "4.4", features = ["derive", "env"] }
+dotenvy = "0.15"
+anyhow = "1.0"
