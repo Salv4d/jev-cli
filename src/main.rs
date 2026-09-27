@@ -52,6 +52,10 @@ pub struct Args {
     #[arg(long = "state")]
     explicit_state: Option<String>,
 
+    /// Read multiple questions from a JSON/YAML file or a raw JSON string.
+    #[arg(long = "questions")]
+    questions: Option<String>,
+
     /// Explicitly provide the question or instructions.
     #[arg(long = "instructions")]
     explicit_instructions: Option<String>,
@@ -95,52 +99,73 @@ pub fn build_endpoint(provider: &Provider) -> (&'static str, &'static str) {
 
 pub fn build_request_body(args: &Args) -> Result<Value> {
     let final_state = args.explicit_state.clone().or_else(|| args.state_pos.clone()).context("Error: You must provide a state, either positionally or via --state.")?;
-    let final_instructions = args.explicit_instructions.clone().or_else(|| args.instructions_pos.clone()).context("Error: You must provide instructions, either positionally or via --instructions.")?;
 
     let (_, default_model) = build_endpoint(&args.provider);
     let model = args.model.clone().unwrap_or_else(|| default_model.to_string());
 
-    let mut q1 = serde_json::Map::new();
-    q1.insert("instructions".to_string(), json!(final_instructions));
+    let mut questions_map = serde_json::Map::new();
 
-    // Determine the question kind and criteria based on arguments
-    if let Some(ref explicit_kind) = args.explicit_kind {
-        // EXPLICIT MODE
-        q1.insert("type".to_string(), json!(explicit_kind.to_lowercase()));
-        if let Some(ref crit) = args.explicit_criteria {
-            let parsed_crit: Value = serde_json::from_str(crit).context("Failed to parse --criteria as JSON")?;
-            q1.insert("criteria".to_string(), parsed_crit);
+    if let Some(ref q_arg) = args.questions {
+        // It could be a raw JSON string or a file path
+        let parsed_questions: Value = if q_arg.trim().starts_with('{') {
+            serde_json::from_str(q_arg).context("Failed to parse --questions as raw JSON")?
+        } else {
+            let file_content = std::fs::read_to_string(q_arg).with_context(|| format!("Failed to read questions file: {}", q_arg))?;
+            // Try YAML first (YAML is a superset of JSON)
+            serde_yaml::from_str(&file_content).context("Failed to parse questions file as YAML/JSON")?
+        };
+
+        if let Some(map) = parsed_questions.as_object() {
+            for (k, v) in map {
+                questions_map.insert(k.clone(), v.clone());
+            }
+        } else {
+            anyhow::bail!("The --questions argument or file must contain a JSON/YAML object (dictionary) at its root.");
         }
     } else {
-        // SHORTHAND MODE
-        if let Some(ref scale) = args.scale {
-            q1.insert("type".to_string(), json!("score"));
-            q1.insert("criteria".to_string(), json!(scale));
-        } else if !args.choices.is_empty() {
-            q1.insert("type".to_string(), json!("choice"));
-            
-            let mut criteria_map = serde_json::Map::new();
-            let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-            for (i, choice) in args.choices.iter().enumerate() {
-                let letter = if i < alphabet.len() {
-                    alphabet.chars().nth(i).unwrap().to_string()
-                } else {
-                    format!("OPT{}", i)
-                };
-                criteria_map.insert(letter, json!(choice));
+        let final_instructions = args.explicit_instructions.clone().or_else(|| args.instructions_pos.clone()).context("Error: You must provide instructions, either positionally or via --instructions (or use --questions for multiple questions).")?;
+
+        let mut q1 = serde_json::Map::new();
+        q1.insert("instructions".to_string(), json!(final_instructions));
+
+        // Determine the question kind and criteria based on arguments
+        if let Some(ref explicit_kind) = args.explicit_kind {
+            // EXPLICIT MODE
+            q1.insert("type".to_string(), json!(explicit_kind.to_lowercase()));
+            if let Some(ref crit) = args.explicit_criteria {
+                let parsed_crit: Value = serde_json::from_str(crit).context("Failed to parse --criteria as JSON")?;
+                q1.insert("criteria".to_string(), parsed_crit);
             }
-            q1.insert("criteria".to_string(), json!(criteria_map));
         } else {
-            q1.insert("type".to_string(), json!("noul"));
+            // SHORTHAND MODE
+            if let Some(ref scale) = args.scale {
+                q1.insert("type".to_string(), json!("score"));
+                q1.insert("criteria".to_string(), json!(scale));
+            } else if !args.choices.is_empty() {
+                q1.insert("type".to_string(), json!("choice"));
+                
+                let mut criteria_map = serde_json::Map::new();
+                let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                for (i, choice) in args.choices.iter().enumerate() {
+                    let letter = if i < alphabet.len() {
+                        alphabet.chars().nth(i).unwrap().to_string()
+                    } else {
+                        format!("OPT{}", i)
+                    };
+                    criteria_map.insert(letter, json!(choice));
+                }
+                q1.insert("criteria".to_string(), json!(criteria_map));
+            } else {
+                q1.insert("type".to_string(), json!("noul"));
+            }
         }
+        questions_map.insert("q1".to_string(), json!(q1));
     }
 
     Ok(json!({
         "model": model,
         "state": final_state,
-        "questions": {
-            "q1": q1
-        }
+        "questions": questions_map
     }))
 }
 
@@ -199,6 +224,7 @@ mod tests {
             provider: Provider::TypesafeAi,
             model: None,
             explicit_state: None,
+            questions: None,
             explicit_instructions: None,
             explicit_kind: None,
             explicit_criteria: None,
@@ -314,5 +340,37 @@ mod tests {
         let result = build_request_body(&args);
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().to_string(), "Error: You must provide a state, either positionally or via --state.");
+    }
+
+    #[test]
+    fn test_multiple_questions_json() {
+        let mut args = get_base_args();
+        args.explicit_state = Some("My State".to_string());
+        args.questions = Some(r#"{
+            "q1": {"type": "noul", "instructions": "Q1?"},
+            "q2": {"type": "score", "instructions": "Q2?", "criteria": ["Bad", "Good"]}
+        }"#.to_string());
+
+        let body = build_request_body(&args).unwrap();
+        assert_eq!(body["questions"]["q1"]["type"], "noul");
+        assert_eq!(body["questions"]["q2"]["type"], "score");
+        assert_eq!(body["questions"]["q2"]["criteria"][0], "Bad");
+    }
+
+    #[test]
+    fn test_multiple_questions_yaml() {
+        let mut args = get_base_args();
+        args.explicit_state = Some("My State".to_string());
+        // By simulating a file read (since the string doesn't start with '{'), the logic attempts to read a file.
+        // We can't easily mock the file system here without creating a temp file. Let's create one.
+        use std::io::Write;
+        let mut temp_file = tempfile::NamedTempFile::new().unwrap();
+        writeln!(temp_file, "q1:\n  type: noul\n  instructions: 'Q1?'").unwrap();
+        
+        args.questions = Some(temp_file.path().to_str().unwrap().to_string());
+
+        let body = build_request_body(&args).unwrap();
+        assert_eq!(body["questions"]["q1"]["type"], "noul");
+        assert_eq!(body["questions"]["q1"]["instructions"], "Q1?");
     }
 }

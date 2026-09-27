@@ -1,0 +1,115 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório de Testes de Integração - Jev CLI</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 20px; }
+        h1 { color: #64ffda; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .test-card { background-color: #1e1e1e; border: 1px solid #333; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .test-title { font-size: 1.2em; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; }
+        .status-success { color: #4caf50; margin-left: auto; font-size: 0.9em; border: 1px solid #4caf50; padding: 3px 8px; border-radius: 4px; }
+        .status-error { color: #f44336; margin-left: auto; font-size: 0.9em; border: 1px solid #f44336; padding: 3px 8px; border-radius: 4px; }
+        .cmd { background-color: #000; padding: 10px; border-radius: 5px; color: #ffb74d; font-family: monospace; font-size: 0.9em; margin-bottom: 15px; }
+        .output { background-color: #000; padding: 15px; border-radius: 5px; color: #a5d6ff; font-family: monospace; font-size: 0.9em; white-space: pre-wrap; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Relatório de Testes de Integração (API Real)</h1>
+    <p>Execução completa das 6 permutações contra Typesafe e OpenRouter usando a build mais recente da CLI.</p>
+
+    <div class="test-card">
+        <div class="test-title">Noul - Typesafe <span class="status-success">SUCESSO</span></div>
+        <div class="cmd">$ jev --token ****** --provider typesafe.ai "The sky is blue." "Is this statement factually true?"</div>
+        <div class="output">{
+  "answers": {
+    "q1": {
+      "noul": 0.86,
+      "type": "noul"
+    }
+  },
+  "model": "jev-1.13.0",
+  "usage": {
+    "input_tokens": 279,
+    "output_tokens": 21
+  }
+}</div>
+    </div>
+    
+    <div class="test-card">
+        <div class="test-title">Choice - Typesafe <span class="status-success">SUCESSO</span></div>
+        <div class="cmd">$ jev --token ****** --provider typesafe.ai "Apples are typically red or green." "What fruit is being described?" Apple Banana</div>
+        <div class="output">{
+  "answers": {
+    "q1": {
+      "choice": "A",
+      "confidence": 1.0,
+      "probabilities": {
+        "A": 1.0,
+        "B": 0.0
+      },
+      "type": "choice"
+    }
+  },
+  "model": "jev-1.13.0",
+  "usage": {
+    "input_tokens": 315,
+    "output_tokens": 32
+  }
+}</div>
+    </div>
+    
+    <div class="test-card">
+        <div class="test-title">Score - Typesafe <span class="status-success">SUCESSO</span></div>
+        <div class="cmd">$ jev --token ****** --provider typesafe.ai "I absolutely hated the movie." "Score the sentiment" --scale "Very Negative" Negative Neutral Positive "Very Positive"</div>
+        <div class="output">{
+  "answers": {
+    "q1": {
+      "confidence": 0.99,
+      "legend": {
+        "0": "Very Negative",
+        "1": "Negative",
+        "2": "Neutral",
+        "3": "Positive",
+        "4": "Very Positive"
+      },
+      "probabilities": {
+        "0": 0.98,
+        "1": 0.02,
+        "2": 0.0,
+        "3": 0.0,
+        "4": 0.0
+      },
+      "score": 0.02,
+      "type": "score"
+    }
+  },
+  "model": "jev-1.13.0",
+  "usage": {
+    "input_tokens": 313,
+    "output_tokens": 18
+  }
+}</div>
+    </div>
+    
+    <div class="test-card">
+        <div class="test-title">Noul - OpenRouter <span class="status-error">ERRO (Code 1)</span></div>
+        <div class="cmd">$ jev --token ****** --provider openrouter "The sky is blue." "Is this statement factually true?"</div>
+        <div class="output">Error response from API: 400 Bad Request - {"error":{"message":"Model typesafe/jev-latest does not exist","code":400}}</div>
+    </div>
+    
+    <div class="test-card">
+        <div class="test-title">Choice - OpenRouter <span class="status-error">ERRO (Code 1)</span></div>
+        <div class="cmd">$ jev --token ****** --provider openrouter "Apples are typically red or green." "What fruit is being described?" Apple Banana</div>
+        <div class="output">Error response from API: 400 Bad Request - {"error":{"message":"Model typesafe/jev-latest does not exist","code":400}}</div>
+    </div>
+    
+    <div class="test-card">
+        <div class="test-title">Score - OpenRouter <span class="status-error">ERRO (Code 1)</span></div>
+        <div class="cmd">$ jev --token ****** --provider openrouter "I absolutely hated the movie." "Score the sentiment" --scale "Very Negative" Negative Neutral Positive "Very Positive"</div>
+        <div class="output">Error response from API: 400 Bad Request - {"error":{"message":"Model typesafe/jev-latest does not exist","code":400}}</div>
+    </div>
+    
+</body>
+</html>

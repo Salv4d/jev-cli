@@ -144,6 +144,24 @@ jev --state "Text" --instructions "Question" --type choice --criteria '{"A":"Yes
 jev --state "Text" --instructions "Question" --type score --criteria '["Bad", "Good"]'
 ```
 
+### Multiple Questions in a Single Request
+The CLI also supports sending multiple questions of different types at once by using the `--questions` flag, which accepts a raw JSON string OR a path to a JSON/YAML file.
+
+**questions.yml:**
+```yaml
+q1:
+  type: noul
+  instructions: Is the sentiment positive?
+q2:
+  type: score
+  instructions: Rate the intensity of the emotion
+  criteria: ["Low", "Medium", "High"]
+```
+
+```bash
+jev --state "I am absolutely thrilled about this new feature!" --questions questions.yml
+```
+
 ---
 
 ## Building from Source

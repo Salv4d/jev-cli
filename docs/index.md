@@ -177,6 +177,29 @@ jev --state "Text" --instructions "Question" --type choice --criteria '{"A":"Yes
 jev --state "Text" --instructions "Question" --type score --criteria '["Bad", "Good"]'
 ```
 
+### Multiple Questions in a Single Request
+The CLI also supports sending multiple questions at once to evaluate the same state against different criteria simultaneously. You can do this by using the `--questions` flag, which accepts a raw JSON string OR a path to a JSON/YAML file.
+
+**Using a YAML file (e.g., `questions.yml`):**
+```yaml
+q1:
+  type: noul
+  instructions: Is the sentiment positive?
+q2:
+  type: score
+  instructions: Rate the intensity of the emotion
+  criteria: ["Low", "Medium", "High"]
+```
+
+```bash
+jev --state "I am absolutely thrilled about this new feature!" --questions questions.yml
+```
+
+**Using a raw JSON string:**
+```bash
+jev --state "I am absolutely thrilled!" --questions '{"q1": {"type": "noul", "instructions": "Is it positive?"}, "q2": {"type": "choice", "instructions": "Which emotion?", "criteria": {"A": "Joy", "B": "Sadness"}}}'
+```
+
 ---
 
 Enjoy building decision-driven logic with `jev-cli`!
