@@ -5,7 +5,7 @@ use reqwest::Client;
 use serde_json::{json, Value};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum Provider {
+pub enum Provider {
     TypesafeAi,
     Openrouter,
 }
@@ -31,10 +31,10 @@ impl std::fmt::Display for Provider {
     }
 }
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Clone)]
 #[command(name = "jev")]
 #[command(author, version, about, long_about = None)]
-struct Args {
+pub struct Args {
     /// The API token to use. Can also be set via JEV_TOKEN environment variable.
     #[arg(short, long, env = "JEV_TOKEN")]
     token: String,
@@ -80,22 +80,8 @@ struct Args {
     scale: Option<Vec<String>>,
 }
 
-fn build_request_body(args: &Args) -> Result<(String, Value)> {
-    let final_state = match args.explicit_state.as_deref().or(args.state_pos.as_deref()) {
-        Some(s) => s.to_string(),
-        None => {
-            anyhow::bail!("You must provide a state, either positionally or via --state.");
-        }
-    };
-
-    let final_instructions = match args.explicit_instructions.as_deref().or(args.instructions_pos.as_deref()) {
-        Some(s) => s.to_string(),
-        None => {
-            anyhow::bail!("You must provide instructions, either positionally or via --instructions.");
-        }
-    };
-
-    let (endpoint, default_model) = match args.provider {
+pub fn build_endpoint(provider: &Provider) -> (&'static str, &'static str) {
+    match provider {
         Provider::TypesafeAi => (
             "https://api.typesafe.ai/v1/systemone",
             "jev-latest",
@@ -104,24 +90,30 @@ fn build_request_body(args: &Args) -> Result<(String, Value)> {
             "https://openrouter.ai/api/alpha/decisions",
             "typesafe/jev-latest",
         ),
-    };
+    }
+}
 
+pub fn build_request_body(args: &Args) -> Result<Value> {
+    let final_state = args.explicit_state.clone().or_else(|| args.state_pos.clone()).context("Error: You must provide a state, either positionally or via --state.")?;
+    let final_instructions = args.explicit_instructions.clone().or_else(|| args.instructions_pos.clone()).context("Error: You must provide instructions, either positionally or via --instructions.")?;
+
+    let (_, default_model) = build_endpoint(&args.provider);
     let model = args.model.clone().unwrap_or_else(|| default_model.to_string());
 
     let mut q1 = serde_json::Map::new();
     q1.insert("instructions".to_string(), json!(final_instructions));
 
     // Determine the question kind and criteria based on arguments
-    if let Some(explicit_kind) = &args.explicit_kind {
+    if let Some(ref explicit_kind) = args.explicit_kind {
         // EXPLICIT MODE
         q1.insert("type".to_string(), json!(explicit_kind.to_lowercase()));
-        if let Some(crit) = &args.explicit_criteria {
+        if let Some(ref crit) = args.explicit_criteria {
             let parsed_crit: Value = serde_json::from_str(crit).context("Failed to parse --criteria as JSON")?;
             q1.insert("criteria".to_string(), parsed_crit);
         }
     } else {
         // SHORTHAND MODE
-        if let Some(scale) = &args.scale {
+        if let Some(ref scale) = args.scale {
             q1.insert("type".to_string(), json!("score"));
             q1.insert("criteria".to_string(), json!(scale));
         } else if !args.choices.is_empty() {
@@ -143,15 +135,13 @@ fn build_request_body(args: &Args) -> Result<(String, Value)> {
         }
     }
 
-    let request_body = json!({
+    Ok(json!({
         "model": model,
         "state": final_state,
         "questions": {
             "q1": q1
         }
-    });
-
-    Ok((endpoint.to_string(), request_body))
+    }))
 }
 
 #[tokio::main]
@@ -164,17 +154,19 @@ async fn main() -> Result<()> {
         std::process::exit(1);
     }
 
-    let (endpoint, request_body) = match build_request_body(&args) {
-        Ok(res) => res,
+    let (endpoint, _) = build_endpoint(&args.provider);
+    
+    let request_body = match build_request_body(&args) {
+        Ok(body) => body,
         Err(e) => {
-            eprintln!("Error: {}", e);
+            eprintln!("{}", e);
             std::process::exit(1);
         }
     };
 
     let client = Client::new();
     let res = client
-        .post(&endpoint)
+        .post(endpoint)
         .header("Authorization", format!("Bearer {}", args.token))
         .header("Content-Type", "application/json")
         .json(&request_body)
@@ -200,95 +192,127 @@ async fn main() -> Result<()> {
 mod tests {
     use super::*;
 
+    // Helper to create a base args struct for testing
+    fn get_base_args() -> Args {
+        Args {
+            token: "test_token".to_string(),
+            provider: Provider::TypesafeAi,
+            model: None,
+            explicit_state: None,
+            explicit_instructions: None,
+            explicit_kind: None,
+            explicit_criteria: None,
+            state_pos: None,
+            instructions_pos: None,
+            choices: vec![],
+            scale: None,
+        }
+    }
+
+    #[test]
+    fn test_build_endpoint_typesafe() {
+        let (endpoint, model) = build_endpoint(&Provider::TypesafeAi);
+        assert_eq!(endpoint, "https://api.typesafe.ai/v1/systemone");
+        assert_eq!(model, "jev-latest");
+    }
+
+    #[test]
+    fn test_build_endpoint_openrouter() {
+        let (endpoint, model) = build_endpoint(&Provider::Openrouter);
+        assert_eq!(endpoint, "https://openrouter.ai/api/alpha/decisions");
+        assert_eq!(model, "typesafe/jev-latest");
+    }
+
     #[test]
     fn test_shorthand_noul() {
-        let args = Args::try_parse_from(vec![
-            "jev",
-            "--token", "dummy",
-            "State text",
-            "Is this true?"
-        ]).unwrap();
+        let mut args = get_base_args();
+        args.state_pos = Some("My State".to_string());
+        args.instructions_pos = Some("My Question".to_string());
 
-        let (_, body) = build_request_body(&args).unwrap();
-        
-        assert_eq!(body["state"], "State text");
+        let body = build_request_body(&args).unwrap();
+        assert_eq!(body["state"], "My State");
+        assert_eq!(body["questions"]["q1"]["instructions"], "My Question");
         assert_eq!(body["questions"]["q1"]["type"], "noul");
-        assert_eq!(body["questions"]["q1"]["instructions"], "Is this true?");
-        assert!(body["questions"]["q1"]["criteria"].is_null());
+        assert!(body["questions"]["q1"].get("criteria").is_none());
     }
 
     #[test]
     fn test_shorthand_choice() {
-        let args = Args::try_parse_from(vec![
-            "jev",
-            "--token", "dummy",
-            "State text",
-            "Which option?",
-            "First Option",
-            "Second Option"
-        ]).unwrap();
+        let mut args = get_base_args();
+        args.state_pos = Some("My State".to_string());
+        args.instructions_pos = Some("My Question".to_string());
+        args.choices = vec!["Opt1".to_string(), "Opt2".to_string()];
 
-        let (_, body) = build_request_body(&args).unwrap();
-        
-        assert_eq!(body["state"], "State text");
+        let body = build_request_body(&args).unwrap();
         assert_eq!(body["questions"]["q1"]["type"], "choice");
-        assert_eq!(body["questions"]["q1"]["instructions"], "Which option?");
-        assert_eq!(body["questions"]["q1"]["criteria"]["A"], "First Option");
-        assert_eq!(body["questions"]["q1"]["criteria"]["B"], "Second Option");
+        let criteria = &body["questions"]["q1"]["criteria"];
+        assert_eq!(criteria["A"], "Opt1");
+        assert_eq!(criteria["B"], "Opt2");
     }
 
     #[test]
     fn test_shorthand_score() {
-        let args = Args::try_parse_from(vec![
-            "jev",
-            "--token", "dummy",
-            "State text",
-            "Rate it",
-            "--scale", "Bad", "Good", "Excellent"
-        ]).unwrap();
+        let mut args = get_base_args();
+        args.state_pos = Some("My State".to_string());
+        args.instructions_pos = Some("My Question".to_string());
+        args.scale = Some(vec!["Bad".to_string(), "Good".to_string()]);
 
-        let (_, body) = build_request_body(&args).unwrap();
-        
-        assert_eq!(body["state"], "State text");
+        let body = build_request_body(&args).unwrap();
         assert_eq!(body["questions"]["q1"]["type"], "score");
-        assert_eq!(body["questions"]["q1"]["instructions"], "Rate it");
-        assert_eq!(body["questions"]["q1"]["criteria"][0], "Bad");
-        assert_eq!(body["questions"]["q1"]["criteria"][2], "Excellent");
+        let criteria = &body["questions"]["q1"]["criteria"];
+        assert_eq!(criteria[0], "Bad");
+        assert_eq!(criteria[1], "Good");
     }
 
     #[test]
-    fn test_explicit_flags() {
-        let args = Args::try_parse_from(vec![
-            "jev",
-            "--token", "dummy",
-            "--state", "Explicit state",
-            "--instructions", "Explicit instr",
-            "--type", "score",
-            "--criteria", "[\"Low\", \"High\"]"
-        ]).unwrap();
+    fn test_explicit_noul() {
+        let mut args = get_base_args();
+        args.explicit_state = Some("My State".to_string());
+        args.explicit_instructions = Some("My Question".to_string());
+        args.explicit_kind = Some("noul".to_string());
 
-        let (_, body) = build_request_body(&args).unwrap();
-        
-        assert_eq!(body["state"], "Explicit state");
-        assert_eq!(body["questions"]["q1"]["type"], "score");
-        assert_eq!(body["questions"]["q1"]["instructions"], "Explicit instr");
-        assert_eq!(body["questions"]["q1"]["criteria"][0], "Low");
-        assert_eq!(body["questions"]["q1"]["criteria"][1], "High");
+        let body = build_request_body(&args).unwrap();
+        assert_eq!(body["state"], "My State");
+        assert_eq!(body["questions"]["q1"]["type"], "noul");
     }
 
     #[test]
-    fn test_openrouter_defaults() {
-        let args = Args::try_parse_from(vec![
-            "jev",
-            "--token", "dummy",
-            "--provider", "openrouter",
-            "State text",
-            "Is this true?"
-        ]).unwrap();
+    fn test_explicit_choice() {
+        let mut args = get_base_args();
+        args.explicit_state = Some("My State".to_string());
+        args.explicit_instructions = Some("My Question".to_string());
+        args.explicit_kind = Some("choice".to_string());
+        args.explicit_criteria = Some(r#"{"X":"Yes", "Y":"No"}"#.to_string());
 
-        let (endpoint, body) = build_request_body(&args).unwrap();
+        let body = build_request_body(&args).unwrap();
+        assert_eq!(body["questions"]["q1"]["type"], "choice");
+        let criteria = &body["questions"]["q1"]["criteria"];
+        assert_eq!(criteria["X"], "Yes");
+        assert_eq!(criteria["Y"], "No");
+    }
+
+    #[test]
+    fn test_explicit_score() {
+        let mut args = get_base_args();
+        args.explicit_state = Some("My State".to_string());
+        args.explicit_instructions = Some("My Question".to_string());
+        args.explicit_kind = Some("score".to_string());
+        args.explicit_criteria = Some(r#"["Low", "High"]"#.to_string());
+
+        let body = build_request_body(&args).unwrap();
+        assert_eq!(body["questions"]["q1"]["type"], "score");
+        let criteria = &body["questions"]["q1"]["criteria"];
+        assert_eq!(criteria[0], "Low");
+        assert_eq!(criteria[1], "High");
+    }
+
+    #[test]
+    fn test_missing_state_error() {
+        let mut args = get_base_args();
+        args.instructions_pos = Some("Q".to_string());
         
-        assert_eq!(endpoint, "https://openrouter.ai/api/alpha/decisions");
-        assert_eq!(body["model"], "typesafe/jev-latest");
+        let result = build_request_body(&args);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Error: You must provide a state, either positionally or via --state.");
     }
 }

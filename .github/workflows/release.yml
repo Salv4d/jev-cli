@@ -37,6 +37,9 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - name: Run Tests
+        run: cargo test --target ${{ matrix.target }}
+
       - name: Build release binary
         run: cargo build --release --target ${{ matrix.target }}
 
