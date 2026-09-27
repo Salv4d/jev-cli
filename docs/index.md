@@ -4,6 +4,8 @@ title: "jev-cli Documentation"
 description: "Comprehensive guide to using the jev-cli tool for TypeSafe's Jev model."
 ---
 
+[English](/jev-cli/) | [Português](/jev-cli/pt-br/) | [Español](/jev-cli/es/)
+
 # jev-cli Documentation
 
 Welcome to the official documentation for **jev-cli**. This command-line interface allows you to instantly query the TypeSafe Jev model locally or via OpenRouter, utilizing a highly intuitive positional shorthand syntax.
