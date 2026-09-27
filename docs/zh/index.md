@@ -15,39 +15,37 @@ Jev 评估“状态”（可以是文本字符串、JSON 块或结构化数据�
 ---
 
 ## 1. 认证与配置
+    
+在开始使用 CLI 之前，您必须配置您的 API 令牌和（可选的）您的提供商。默认情况下，CLI 查询 `typesafe.ai`，但您也可以通过 OpenRouter 路由请求。
 
-在使用 CLI 之前，您必须设置您的 API 令牌。
-
-### 设置您的令牌
-您可以通过环境变量（推荐）或明确使用 `--token` 标志安全地传递您的令牌。
-
-**Mac / Linux:**
+### Linux / macOS
 ```bash
+# 1. 设置您的 API 令牌
 export JEV_TOKEN="您的_token_在这里"
-```
 
-**Windows (PowerShell):**
-```powershell
-$env:JEV_TOKEN="您的_token_在这里"
-```
-
-### 选择提供商
-默认情况下，CLI 查询 `typesafe.ai`。如果您想通过 OpenRouter 路由您的查询，您必须明确设置提供商：
-
-**Mac / Linux:**
-```bash
+# 2. (可选) 将提供商设置为 openrouter
 export JEV_PROVIDER="openrouter"
 ```
 
-**Windows (PowerShell):**
+### Windows (PowerShell)
 ```powershell
+# 1. 设置您的 API 令牌
+$env:JEV_TOKEN="您的_token_在这里"
+
+# 2. (可选) 将提供商设置为 openrouter
 $env:JEV_PROVIDER="openrouter"
 ```
 
-或者，您可以按命令动态传递提供商：
-```bash
-jev --provider openrouter "状态" "问题？"
+### Windows (命令提示符)
+```cmd
+:: 1. 设置您的 API 令牌
+set JEV_TOKEN=您的_token_在这里
+
+:: 2. (可选) 将提供商设置为 openrouter
+set JEV_PROVIDER=openrouter
 ```
+
+*(或者，您可以直接在命令中传递它们：`jev --token "..." --provider openrouter "状态" "问题？"`)*
 
 ### 模型覆盖
 默认情况下，CLI 使用 `jev-latest` 模型。如果您需要固定到特定版本（例如 `typesafe/jev-1.13-20260917`），您可以使用 `--model` 标志：

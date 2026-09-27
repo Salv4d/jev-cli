@@ -16,38 +16,36 @@ O Jev avalia "estados" (que podem ser uma string de texto, um bloco JSON ou dado
 
 ## 1. Autenticação e Configuração
 
-Antes de usar o CLI, você deve configurar seu token de API.
+Antes de usar o CLI, você deve configurar seu token de API e (opcionalmente) seu provedor. Por padrão, o CLI consulta `typesafe.ai`, mas você pode rotear consultas através do OpenRouter.
 
-### Configurando seu Token
-Você pode passar seu token de forma segura via variáveis de ambiente (recomendado) ou explicitamente com a flag `--token`.
-
-**Mac / Linux:**
+### Linux / macOS
 ```bash
+# 1. Configure seu Token de API
 export JEV_TOKEN="seu_token_aqui"
-```
 
-**Windows (PowerShell):**
-```powershell
-$env:JEV_TOKEN="seu_token_aqui"
-```
-
-### Escolhendo um Provedor
-Por padrão, o CLI consulta `typesafe.ai`. Se você quiser rotear suas consultas através do OpenRouter, você deve definir explicitamente o provedor:
-
-**Mac / Linux:**
-```bash
+# 2. (Opcional) Configure seu provedor para openrouter
 export JEV_PROVIDER="openrouter"
 ```
 
-**Windows (PowerShell):**
+### Windows (PowerShell)
 ```powershell
+# 1. Configure seu Token de API
+$env:JEV_TOKEN="seu_token_aqui"
+
+# 2. (Opcional) Configure seu provedor para openrouter
 $env:JEV_PROVIDER="openrouter"
 ```
 
-Alternativamente, você pode passar o provedor dinamicamente por comando:
-```bash
-jev --provider openrouter "Estado" "Pergunta?"
+### Windows (Prompt de Comando)
+```cmd
+:: 1. Configure seu Token de API
+set JEV_TOKEN=seu_token_aqui
+
+:: 2. (Opcional) Configure seu provedor para openrouter
+set JEV_PROVIDER=openrouter
 ```
+
+*(Alternativamente, você pode passá-los dinamicamente por comando: `jev --token "..." --provider openrouter "Estado" "Pergunta?"`)*
 
 ### Substituições de Modelo
 Por padrão, o CLI usa o modelo `jev-latest`. Se você precisar fixar em uma versão específica (ex: `typesafe/jev-1.13-20260917`), você pode usar a flag `--model`:

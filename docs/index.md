@@ -16,38 +16,36 @@ Jev evaluates "states" (which can be a string of text, a block of JSON, or struc
 
 ## 1. Authentication & Configuration
 
-Before using the CLI, you must set up your API token. 
+Before using the CLI, you must configure your API token and (optionally) your provider. By default, the CLI queries `typesafe.ai`, but you can route queries through OpenRouter.
 
-### Setting your Token
-You can pass your token securely via environment variables (recommended) or explicitly with the `--token` flag.
-
-**Mac / Linux:**
+### Linux / macOS
 ```bash
+# 1. Set your API Token
 export JEV_TOKEN="your_token_here"
-```
 
-**Windows (PowerShell):**
-```powershell
-$env:JEV_TOKEN="your_token_here"
-```
-
-### Choosing a Provider
-By default, the CLI queries `typesafe.ai`. If you want to route your queries through OpenRouter, you must explicitly set the provider:
-
-**Mac / Linux:**
-```bash
+# 2. (Optional) Set your provider to openrouter
 export JEV_PROVIDER="openrouter"
 ```
 
-**Windows (PowerShell):**
+### Windows (PowerShell)
 ```powershell
+# 1. Set your API Token
+$env:JEV_TOKEN="your_token_here"
+
+# 2. (Optional) Set your provider to openrouter
 $env:JEV_PROVIDER="openrouter"
 ```
 
-Alternatively, you can pass the provider dynamically per command:
-```bash
-jev --provider openrouter "State" "Question?"
+### Windows (Command Prompt)
+```cmd
+:: 1. Set your API Token
+set JEV_TOKEN=your_token_here
+
+:: 2. (Optional) Set your provider to openrouter
+set JEV_PROVIDER=openrouter
 ```
+
+*(Alternatively, you can pass these dynamically per command: `jev --token "..." --provider openrouter "State" "Question?"`)*
 
 ### Model Overrides
 By default, the CLI uses the `jev-latest` model. If you need to pin to a specific version (e.g. `typesafe/jev-1.13-20260917`), you can use the `--model` flag:
