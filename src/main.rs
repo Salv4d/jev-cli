@@ -3,7 +3,7 @@ use clap::{Parser, ValueEnum};
 use dotenvy::dotenv;
 use std::env;
 
-#[derive(Debug, Clone, ValueEnum, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum Provider {
     TypesafeAi,
     Openrouter,
@@ -69,12 +69,27 @@ fn main() -> Result<()> {
         std::process::exit(1);
     }
 
-    println!("✓ Token is valid.");
-    println!("✓ Provider: {}", args.provider);
-    println!("✓ State: {}", args.state);
-    println!("✓ Question Kind: {:?}", args.kind);
-    
-    // Add any further logic here based on state and kind.
+    // Print debug information to stderr so it doesn't interfere with stdout payloads
+    eprintln!("✓ Validating Environment...");
+    eprintln!("  Provider: {}", args.provider);
+    eprintln!("  Kind: {:?}", args.kind);
+    eprintln!("  State loaded.");
+
+    // The actual output (to stdout) varies depending on the kind of question asked.
+    match args.kind {
+        QuestionKind::Noul => {
+            // Noul (e.g., standard generation or free text response)
+            println!(r#"{{ "status": "success", "type": "noul", "response": "Simulated free-text response for noul based on state: {}" }}"#, args.state);
+        }
+        QuestionKind::Choice => {
+            // Choice (e.g., A, B, C, D)
+            println!(r#"{{ "status": "success", "type": "choice", "selected_option": "A", "confidence": 0.95 }}"#);
+        }
+        QuestionKind::Score => {
+            // Score (e.g., 0.0 to 1.0 or 1-10)
+            println!(r#"{{ "status": "success", "type": "score", "score": 8.5, "max_score": 10.0 }}"#);
+        }
+    }
     
     Ok(())
 }
