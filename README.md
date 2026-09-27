@@ -134,6 +134,18 @@ jev --help
 
 ---
 
+### Explicit Syntax (For Scripts and CI/CD)
+While the positional shorthand syntax is great for humans typing in the terminal, you might prefer explicit named arguments in scripts to ensure stability. 
+
+The CLI fully supports long-form arguments:
+```bash
+jev --state "I want a car." --instructions "Does this text express desire?" --kind noul
+jev --state "Text" --instructions "Question" --kind choice --criteria '{"A":"Yes", "B":"No"}'
+jev --state "Text" --instructions "Question" --kind score --criteria '["Bad", "Good"]'
+```
+
+---
+
 ## Building from Source
 
 Ensure you have Rust installed, then run:

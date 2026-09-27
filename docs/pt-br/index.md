@@ -167,6 +167,16 @@ Se suas escolhas são frases longas, basta envolvê-las em aspas:
 jev "Erro 503: Serviço Indisponível" "O que o sistema deve fazer?" "Tentar novamente imediatamente" "Recuar exponencialmente e tentar novamente" "Falhar silenciosamente"
 ```
 
+### Sintaxe Explícita (Para Scripts e CI/CD)
+Embora a sintaxe posicional curta seja ótima para humanos digitando no terminal, você pode preferir argumentos explícitos e nomeados em scripts para garantir estabilidade e clareza.
+
+O CLI suporta totalmente o uso de argumentos longos (flags):
+```bash
+jev --state "Eu quero um carro." --instructions "Isso expressa um desejo?" --kind noul
+jev --state "Texto" --instructions "Pergunta" --kind choice --criteria '{"A":"Sim", "B":"Não"}'
+jev --state "Texto" --instructions "Pergunta" --kind score --criteria '["Ruim", "Bom"]'
+```
+
 ---
 
 Aproveite construindo lógica orientada a decisões com o `jev-cli`!

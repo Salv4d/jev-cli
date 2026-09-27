@@ -167,6 +167,16 @@ Si sus opciones son oraciones largas, simplemente envuélvalas entre comillas:
 jev "Error 503: Servicio no disponible" "¿Qué debe hacer el sistema?" "Reintentar inmediatamente" "Retroceder exponencialmente y reintentar" "Fallar silenciosamente"
 ```
 
+### Sintaxis Explícita (Para Scripts y CI/CD)
+Aunque la sintaxis posicional corta es excelente para humanos escribiendo en la terminal, es posible que prefiera argumentos con nombre explícitos en scripts para garantizar estabilidad y claridad.
+
+El CLI soporta completamente los argumentos largos (flags):
+```bash
+jev --state "Quiero un coche." --instructions "¿Esto expresa deseo?" --kind noul
+jev --state "Texto" --instructions "Pregunta" --kind choice --criteria '{"A":"Sí", "B":"No"}'
+jev --state "Texto" --instructions "Pregunta" --kind score --criteria '["Malo", "Bueno"]'
+```
+
 ---
 
 ¡Disfrute construyendo lógica impulsada por decisiones con `jev-cli`!

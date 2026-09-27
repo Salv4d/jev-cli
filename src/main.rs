@@ -47,19 +47,37 @@ struct Args {
     #[arg(short, long, env = "JEV_MODEL")]
     model: Option<String>,
 
-    /// The scale for a score question. If provided, the question is evaluated as a Score.
-    #[arg(long = "scale", num_args = 1..)]
-    scale: Option<Vec<String>>,
+    // EXPLICIT FLAGS (Long version)
+    /// Explicitly provide the state to evaluate.
+    #[arg(long = "state")]
+    explicit_state: Option<String>,
 
-    /// The state to evaluate (e.g., text or JSON context).
-    state: String,
+    /// Explicitly provide the question or instructions.
+    #[arg(long = "instructions")]
+    explicit_instructions: Option<String>,
 
-    /// The question or instructions to evaluate against the state.
-    instructions: String,
+    /// Explicitly define the kind (noul, choice, score).
+    #[arg(long = "kind")]
+    explicit_kind: Option<String>,
 
-    /// Options for a choice question. If provided, the question is evaluated as a Choice.
+    /// Explicitly provide criteria as a raw JSON string (dict for choice, array for score).
+    #[arg(long = "criteria")]
+    explicit_criteria: Option<String>,
+
+    // SHORTHAND FLAGS (Positional)
+    /// The state to evaluate (Shorthand syntax).
+    state_pos: Option<String>,
+
+    /// The question or instructions to evaluate (Shorthand syntax).
+    instructions_pos: Option<String>,
+
+    /// Options for a choice question (Shorthand syntax).
     #[arg(trailing_var_arg = true)]
     choices: Vec<String>,
+
+    /// Scale for a score question (Shorthand syntax).
+    #[arg(long = "scale", num_args = 1..)]
+    scale: Option<Vec<String>>,
 }
 
 #[tokio::main]
@@ -71,6 +89,22 @@ async fn main() -> Result<()> {
         eprintln!("Error: Token provided is empty.");
         std::process::exit(1);
     }
+
+    let final_state = match args.explicit_state.or(args.state_pos) {
+        Some(s) => s,
+        None => {
+            eprintln!("Error: You must provide a state, either positionally or via --state.");
+            std::process::exit(1);
+        }
+    };
+
+    let final_instructions = match args.explicit_instructions.or(args.instructions_pos) {
+        Some(s) => s,
+        None => {
+            eprintln!("Error: You must provide instructions, either positionally or via --instructions.");
+            std::process::exit(1);
+        }
+    };
 
     let (endpoint, default_model) = match args.provider {
         Provider::TypesafeAi => (
@@ -85,37 +119,44 @@ async fn main() -> Result<()> {
 
     let model = args.model.unwrap_or_else(|| default_model.to_string());
 
-    // Determine the question kind and criteria based on arguments
     let mut q1 = serde_json::Map::new();
-    q1.insert("instructions".to_string(), json!(args.instructions));
+    q1.insert("instructions".to_string(), json!(final_instructions));
 
-    if let Some(scale) = args.scale {
-        // It's a Score question
-        q1.insert("type".to_string(), json!("score"));
-        q1.insert("criteria".to_string(), json!(scale));
-    } else if !args.choices.is_empty() {
-        // It's a Choice question
-        q1.insert("type".to_string(), json!("choice"));
-        
-        let mut criteria_map = serde_json::Map::new();
-        let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        for (i, choice) in args.choices.iter().enumerate() {
-            let letter = if i < alphabet.len() {
-                alphabet.chars().nth(i).unwrap().to_string()
-            } else {
-                format!("OPT{}", i)
-            };
-            criteria_map.insert(letter, json!(choice));
+    // Determine the question kind and criteria based on arguments
+    if let Some(explicit_kind) = args.explicit_kind {
+        // EXPLICIT MODE
+        q1.insert("type".to_string(), json!(explicit_kind.to_lowercase()));
+        if let Some(crit) = args.explicit_criteria {
+            let parsed_crit: Value = serde_json::from_str(&crit).context("Failed to parse --criteria as JSON")?;
+            q1.insert("criteria".to_string(), parsed_crit);
         }
-        q1.insert("criteria".to_string(), json!(criteria_map));
     } else {
-        // It's a Noul (Yes/No) question
-        q1.insert("type".to_string(), json!("noul"));
+        // SHORTHAND MODE
+        if let Some(scale) = args.scale {
+            q1.insert("type".to_string(), json!("score"));
+            q1.insert("criteria".to_string(), json!(scale));
+        } else if !args.choices.is_empty() {
+            q1.insert("type".to_string(), json!("choice"));
+            
+            let mut criteria_map = serde_json::Map::new();
+            let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            for (i, choice) in args.choices.iter().enumerate() {
+                let letter = if i < alphabet.len() {
+                    alphabet.chars().nth(i).unwrap().to_string()
+                } else {
+                    format!("OPT{}", i)
+                };
+                criteria_map.insert(letter, json!(choice));
+            }
+            q1.insert("criteria".to_string(), json!(criteria_map));
+        } else {
+            q1.insert("type".to_string(), json!("noul"));
+        }
     }
 
     let request_body = json!({
         "model": model,
-        "state": args.state,
+        "state": final_state,
         "questions": {
             "q1": q1
         }

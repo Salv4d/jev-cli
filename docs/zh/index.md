@@ -167,6 +167,16 @@ jev '{"user_age": 17, "has_license": false}' "这个用户合法允许驾驶吗�
 jev "错误 503: 服务不可用" "系统应该怎么做？" "立即重试" "指数退避并重试" "静默失败"
 ```
 
+### 显式语法 (适用于脚本和 CI/CD)
+虽然对于在终端输入的人类来说，位置简写语法非常棒，但为了确保稳定性和可读性，您可能更喜欢在脚本中使用明确命名的参数。
+
+CLI 完全支持长格式参数：
+```bash
+jev --state "我想要一辆车。" --instructions "这表达了渴望吗？" --kind noul
+jev --state "文本" --instructions "问题" --kind choice --criteria '{"A":"是", "B":"否"}'
+jev --state "文本" --instructions "问题" --kind score --criteria '["差", "好"]'
+```
+
 ---
 
 尽情享受使用 `jev-cli` 构建决策驱动的逻辑吧！
