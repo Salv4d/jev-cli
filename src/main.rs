@@ -30,7 +30,15 @@ impl std::fmt::Display for Provider {
     }
 }
 
+#[derive(Debug, Clone, ValueEnum, PartialEq, Eq)]
+enum QuestionKind {
+    Noul,
+    Choice,
+    Score,
+}
+
 #[derive(Parser, Debug)]
+#[command(name = "jev")]
 #[command(author, version, about, long_about = None)]
 struct Args {
     /// The API token to use. Can also be set via JEV_TOKEN environment variable.
@@ -40,6 +48,14 @@ struct Args {
     /// The provider to use (typesafe.ai or openrouter). Can also be set via JEV_PROVIDER environment variable.
     #[arg(short, long, env = "JEV_PROVIDER", default_value = "typesafe.ai")]
     provider: Provider,
+
+    /// The state to pass (e.g., a JSON string or path to a state file).
+    #[arg(short, long)]
+    state: String,
+
+    /// The kind of question to ask.
+    #[arg(short, long, value_enum)]
+    kind: QuestionKind,
 }
 
 fn main() -> Result<()> {
@@ -53,11 +69,12 @@ fn main() -> Result<()> {
         std::process::exit(1);
     }
 
-    println!("Checking environment...");
-    println!("✓ Token is valid (not empty).");
-    println!("✓ Provider selected: {}", args.provider);
+    println!("✓ Token is valid.");
+    println!("✓ Provider: {}", args.provider);
+    println!("✓ State: {}", args.state);
+    println!("✓ Question Kind: {:?}", args.kind);
     
-    // Add any further logic here.
+    // Add any further logic here based on state and kind.
     
     Ok(())
 }
