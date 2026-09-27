@@ -2,6 +2,8 @@
 
 A command-line interface tool in Rust to query the TypeSafe Jev model locally or via OpenRouter.
 
+> 📖 **[View the Official Documentation & Complete API Guide](https://Salv4d.github.io/jev-cli/)**
+
 ## Table of Contents
 - [Features](#features)
 - [Getting Started: Linux / WSL](#getting-started-linux--wsl)
