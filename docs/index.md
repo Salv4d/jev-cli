@@ -116,11 +116,11 @@ jev "My favorite animal is the one with a trunk." "What is the animal?" Elephant
 ### Score (Grading Rubric)
 A **Score** evaluation maps the state against an ordered legend/scale, identifying the index of the scale that fits best.
 
-**Syntax:** `jev "<state>" "<question>" --escala <scale_1> <scale_2> <scale_3> ...`
+**Syntax:** `jev "<state>" "<question>" --scale <scale_1> <scale_2> <scale_3> ...`
 
 **Example:**
 ```bash
-jev "I absolutely loved this restaurant, the food was divine!" "Rate the sentiment" --escala "Terrible" "Poor" "Neutral" "Good" "Excellent"
+jev "I absolutely loved this restaurant, the food was divine!" "Rate the sentiment" --scale "Terrible" "Poor" "Neutral" "Good" "Excellent"
 ```
 
 **Expected Output:**

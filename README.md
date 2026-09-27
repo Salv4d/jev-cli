@@ -113,9 +113,9 @@ jev "This animal has a long trunk and big ears." "What animal is this?" Elephant
 ```
 
 ### 3. Score (Grading Rubric)
-If you use the `--escala` flag, it evaluates as a **Score** based on the passed criteria.
+If you use the `--scale` flag, it evaluates as a **Score** based on the passed criteria.
 ```bash
-jev "The service was incredible, 10/10 would return!" "Rate the sentiment" --escala "Terrible" "Poor" "Average" "Good" "Excellent"
+jev "The service was incredible, 10/10 would return!" "Rate the sentiment" --scale "Terrible" "Poor" "Average" "Good" "Excellent"
 ```
 
 ---

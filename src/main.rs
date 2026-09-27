@@ -48,8 +48,8 @@ struct Args {
     model: Option<String>,
 
     /// The scale for a score question. If provided, the question is evaluated as a Score.
-    #[arg(long = "escala", num_args = 1..)]
-    escala: Option<Vec<String>>,
+    #[arg(long = "scale", num_args = 1..)]
+    scale: Option<Vec<String>>,
 
     /// The state to evaluate (e.g., text or JSON context).
     state: String,
@@ -89,10 +89,10 @@ async fn main() -> Result<()> {
     let mut q1 = serde_json::Map::new();
     q1.insert("instructions".to_string(), json!(args.instructions));
 
-    if let Some(escala) = args.escala {
+    if let Some(scale) = args.scale {
         // It's a Score question
         q1.insert("type".to_string(), json!("score"));
-        q1.insert("criteria".to_string(), json!(escala));
+        q1.insert("criteria".to_string(), json!(scale));
     } else if !args.choices.is_empty() {
         // It's a Choice question
         q1.insert("type".to_string(), json!("choice"));
