@@ -92,7 +92,7 @@ pub fn build_endpoint(provider: &Provider) -> (&'static str, &'static str) {
         ),
         Provider::Openrouter => (
             "https://openrouter.ai/api/alpha/decisions",
-            "typesafe/jev-latest",
+            "typesafe/jev-1.13",
         ),
     }
 }
@@ -246,7 +246,7 @@ mod tests {
     fn test_build_endpoint_openrouter() {
         let (endpoint, model) = build_endpoint(&Provider::Openrouter);
         assert_eq!(endpoint, "https://openrouter.ai/api/alpha/decisions");
-        assert_eq!(model, "typesafe/jev-latest");
+        assert_eq!(model, "typesafe/jev-1.13");
     }
 
     #[test]
