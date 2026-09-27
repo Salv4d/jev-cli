@@ -31,13 +31,6 @@ impl std::fmt::Display for Provider {
     }
 }
 
-#[derive(Debug, Clone, clap::ValueEnum, PartialEq, Eq)]
-enum QuestionKind {
-    Noul,
-    Choice,
-    Score,
-}
-
 #[derive(Parser, Debug)]
 #[command(name = "jev")]
 #[command(author, version, about, long_about = None)]
@@ -54,21 +47,19 @@ struct Args {
     #[arg(short, long, env = "JEV_MODEL")]
     model: Option<String>,
 
-    /// The state to evaluate (e.g., a JSON string or text).
-    #[arg(short, long)]
+    /// The scale for a score question. If provided, the question is evaluated as a Score.
+    #[arg(long = "escala", num_args = 1..)]
+    escala: Option<Vec<String>>,
+
+    /// The state to evaluate (e.g., text or JSON context).
     state: String,
 
-    /// The kind of question to ask (noul, choice, score).
-    #[arg(short, long, value_enum)]
-    kind: QuestionKind,
-
-    /// Instructions for the question.
-    #[arg(short, long, default_value = "Evaluate the state")]
+    /// The question or instructions to evaluate against the state.
     instructions: String,
 
-    /// Criteria for Choice or Score kinds (format as JSON string array or object).
-    #[arg(short, long)]
-    criteria: Option<String>,
+    /// Options for a choice question. If provided, the question is evaluated as a Choice.
+    #[arg(trailing_var_arg = true)]
+    choices: Vec<String>,
 }
 
 #[tokio::main]
@@ -94,25 +85,32 @@ async fn main() -> Result<()> {
 
     let model = args.model.unwrap_or_else(|| default_model.to_string());
 
-    // Build the "q1" object based on kind
+    // Determine the question kind and criteria based on arguments
     let mut q1 = serde_json::Map::new();
-    
-    let kind_str = match args.kind {
-        QuestionKind::Noul => "noul",
-        QuestionKind::Choice => "choice",
-        QuestionKind::Score => "score",
-    };
-    q1.insert("type".to_string(), json!(kind_str));
     q1.insert("instructions".to_string(), json!(args.instructions));
 
-    if args.kind == QuestionKind::Choice || args.kind == QuestionKind::Score {
-        if let Some(criteria_str) = &args.criteria {
-            let parsed_criteria: Value = serde_json::from_str(criteria_str).context("Criteria must be valid JSON")?;
-            q1.insert("criteria".to_string(), parsed_criteria);
-        } else {
-            eprintln!("Error: --criteria is required for choice and score kinds.");
-            std::process::exit(1);
+    if let Some(escala) = args.escala {
+        // It's a Score question
+        q1.insert("type".to_string(), json!("score"));
+        q1.insert("criteria".to_string(), json!(escala));
+    } else if !args.choices.is_empty() {
+        // It's a Choice question
+        q1.insert("type".to_string(), json!("choice"));
+        
+        let mut criteria_map = serde_json::Map::new();
+        let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        for (i, choice) in args.choices.iter().enumerate() {
+            let letter = if i < alphabet.len() {
+                alphabet.chars().nth(i).unwrap().to_string()
+            } else {
+                format!("OPT{}", i)
+            };
+            criteria_map.insert(letter, json!(choice));
         }
+        q1.insert("criteria".to_string(), json!(criteria_map));
+    } else {
+        // It's a Noul (Yes/No) question
+        q1.insert("type".to_string(), json!("noul"));
     }
 
     let request_body = json!({
@@ -142,7 +140,6 @@ async fn main() -> Result<()> {
 
     let response_json: Value = res.json().await.context("Failed to parse JSON response")?;
     
-    // Output the formatted JSON cleanly to stdout
     println!("{}", serde_json::to_string_pretty(&response_json).unwrap());
 
     Ok(())

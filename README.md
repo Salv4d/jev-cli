@@ -7,7 +7,7 @@ A command-line interface tool in Rust to query the TypeSafe Jev model locally or
 - [Getting Started: Linux / WSL](#getting-started-linux--wsl)
 - [Getting Started: macOS](#getting-started-macos)
 - [Getting Started: Windows](#getting-started-windows)
-- [Usage Examples](#usage-examples)
+- [Usage Examples (Shorthand Syntax)](#usage-examples-shorthand-syntax)
   - [Model Overrides](#passing-the-specific-model-optional)
   - [1. Noul (Yes/No Judgement)](#1-noul-yesno-judgement)
   - [2. Choice (Multiple Choice)](#2-choice-multiple-choice)
@@ -17,7 +17,8 @@ A command-line interface tool in Rust to query the TypeSafe Jev model locally or
 ---
 
 ## Features
-- Evaluates states using **Noul** (Yes/No), **Choice** (Multiple Choice), or **Score** (Rubric) question kinds.
+- Evaluates states using **Noul** (Yes/No), **Choice** (Multiple Choice), or **Score** (Rubric) question kinds automatically derived from your arguments.
+- Extremely clean, intuitive positional shorthand syntax.
 - Validates tokens and allows querying both `typesafe.ai` and `openrouter` seamlessly.
 - Allows explicitly overriding the model using the `--model` flag.
 - Provides well-formatted JSON output natively from the APIs.
@@ -93,38 +94,34 @@ set JEV_PROVIDER=openrouter
 
 ---
 
-## Usage Examples
+## Usage Examples (Shorthand Syntax)
 
-### Passing the specific Model (Optional)
-By default, the CLI uses the latest Jev model. To specify an exact model on OpenRouter (e.g., if you don't want to use the latest), you can use the `--model` argument or `JEV_MODEL` environment variable:
-```bash
-jev --model "typesafe/jev-1.13-20260917" ...
-```
+The CLI uses a smart, intuitive positional syntax to automatically infer the type of question (`noul`, `choice`, or `score`) based on the arguments you pass!
 
 ### 1. Noul (Yes/No Judgement)
-Evaluates a boolean/probabilistic yes/no based on the instructions.
+If you pass only the `<state>` and the `<question>`, it defaults to a **Noul** evaluation returning a probability.
 ```bash
-jev --state "Water is made of Hydrogen and Oxygen." \
-    --kind noul \
-    --instructions "Is this scientifically accurate?"
+jev "Water is made of Hydrogen and Oxygen." "Is this scientifically accurate?"
 ```
 
 ### 2. Choice (Multiple Choice)
-Selects the best choice based on criteria. Pass `--criteria` as a JSON dictionary.
+If you add trailing positional arguments, it evaluates as a **Choice** and automatically maps your options (to A, B, C, etc.).
 ```bash
-jev --state "This animal has a long trunk and big ears." \
-    --kind choice \
-    --instructions "What animal is this?" \
-    --criteria '{"A": "Elephant", "B": "Giraffe", "C": "Lion"}'
+jev "This animal has a long trunk and big ears." "What animal is this?" Elephant Giraffe Lion
 ```
 
 ### 3. Score (Grading Rubric)
-Scores the state based on a grading array. Pass `--criteria` as a JSON array.
+If you use the `--escala` flag, it evaluates as a **Score** based on the passed criteria.
 ```bash
-jev --state "The service was incredible, 10/10 would return!" \
-    --kind score \
-    --instructions "Rate the sentiment of this feedback" \
-    --criteria '["Terrible", "Poor", "Average", "Good", "Excellent"]'
+jev "The service was incredible, 10/10 would return!" "Rate the sentiment" --escala "Terrible" "Poor" "Average" "Good" "Excellent"
+```
+
+---
+
+### Passing the specific Model (Optional)
+By default, the CLI uses the latest Jev model. To specify an exact model on OpenRouter, you can use the `--model` argument:
+```bash
+jev --model "typesafe/jev-1.13-20260917" "Text" "Question"
 ```
 
 To see all available commands, run:
