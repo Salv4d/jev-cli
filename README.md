@@ -34,16 +34,29 @@ sudo mv jev-cli /usr/local/bin/jev
 
 ## Usage
 
-First, set your token. You can pass it with `--token` or set it in your environment:
+First, set your API token. You can pass it directly using `--token` or set it in your environment:
+
+### Linux / macOS
 ```bash
 export JEV_TOKEN="your_token_here"
 ```
 
-If using OpenRouter, you must also specify the provider:
-```bash
-export JEV_PROVIDER="openrouter"
+### Windows (PowerShell)
+```powershell
+$env:JEV_TOKEN="your_token_here"
 ```
-*(You can also use `--provider openrouter` instead)*
+
+### Windows (Command Prompt)
+```cmd
+set JEV_TOKEN=your_token_here
+```
+
+If using OpenRouter, you must also specify the provider (the default is `typesafe.ai`). You can set this in your environment as well:
+- **Mac/Linux:** `export JEV_PROVIDER="openrouter"`
+- **Windows (PowerShell):** `$env:JEV_PROVIDER="openrouter"`
+- **Windows (CMD):** `set JEV_PROVIDER=openrouter`
+
+*(Alternatively, you can just pass `--provider openrouter` in your command).*
 
 ### Passing the specific Model (Optional)
 By default, the CLI uses the latest Jev model. To specify an exact model on OpenRouter (e.g., if you don't want to use the latest), you can use the `--model` argument or `JEV_MODEL` environment variable:
