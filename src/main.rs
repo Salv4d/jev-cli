@@ -80,29 +80,18 @@ struct Args {
     scale: Option<Vec<String>>,
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    let _ = dotenv();
-    let args = Args::parse();
-
-    if args.token.trim().is_empty() {
-        eprintln!("Error: Token provided is empty.");
-        std::process::exit(1);
-    }
-
-    let final_state = match args.explicit_state.or(args.state_pos) {
-        Some(s) => s,
+fn build_request_body(args: &Args) -> Result<(String, Value)> {
+    let final_state = match args.explicit_state.as_deref().or(args.state_pos.as_deref()) {
+        Some(s) => s.to_string(),
         None => {
-            eprintln!("Error: You must provide a state, either positionally or via --state.");
-            std::process::exit(1);
+            anyhow::bail!("You must provide a state, either positionally or via --state.");
         }
     };
 
-    let final_instructions = match args.explicit_instructions.or(args.instructions_pos) {
-        Some(s) => s,
+    let final_instructions = match args.explicit_instructions.as_deref().or(args.instructions_pos.as_deref()) {
+        Some(s) => s.to_string(),
         None => {
-            eprintln!("Error: You must provide instructions, either positionally or via --instructions.");
-            std::process::exit(1);
+            anyhow::bail!("You must provide instructions, either positionally or via --instructions.");
         }
     };
 
@@ -117,22 +106,22 @@ async fn main() -> Result<()> {
         ),
     };
 
-    let model = args.model.unwrap_or_else(|| default_model.to_string());
+    let model = args.model.clone().unwrap_or_else(|| default_model.to_string());
 
     let mut q1 = serde_json::Map::new();
     q1.insert("instructions".to_string(), json!(final_instructions));
 
     // Determine the question kind and criteria based on arguments
-    if let Some(explicit_kind) = args.explicit_kind {
+    if let Some(explicit_kind) = &args.explicit_kind {
         // EXPLICIT MODE
         q1.insert("type".to_string(), json!(explicit_kind.to_lowercase()));
-        if let Some(crit) = args.explicit_criteria {
-            let parsed_crit: Value = serde_json::from_str(&crit).context("Failed to parse --criteria as JSON")?;
+        if let Some(crit) = &args.explicit_criteria {
+            let parsed_crit: Value = serde_json::from_str(crit).context("Failed to parse --criteria as JSON")?;
             q1.insert("criteria".to_string(), parsed_crit);
         }
     } else {
         // SHORTHAND MODE
-        if let Some(scale) = args.scale {
+        if let Some(scale) = &args.scale {
             q1.insert("type".to_string(), json!("score"));
             q1.insert("criteria".to_string(), json!(scale));
         } else if !args.choices.is_empty() {
@@ -162,9 +151,30 @@ async fn main() -> Result<()> {
         }
     });
 
+    Ok((endpoint.to_string(), request_body))
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let _ = dotenv();
+    let args = Args::parse();
+
+    if args.token.trim().is_empty() {
+        eprintln!("Error: Token provided is empty.");
+        std::process::exit(1);
+    }
+
+    let (endpoint, request_body) = match build_request_body(&args) {
+        Ok(res) => res,
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            std::process::exit(1);
+        }
+    };
+
     let client = Client::new();
     let res = client
-        .post(endpoint)
+        .post(&endpoint)
         .header("Authorization", format!("Bearer {}", args.token))
         .header("Content-Type", "application/json")
         .json(&request_body)
@@ -184,4 +194,101 @@ async fn main() -> Result<()> {
     println!("{}", serde_json::to_string_pretty(&response_json).unwrap());
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_shorthand_noul() {
+        let args = Args::try_parse_from(vec![
+            "jev",
+            "--token", "dummy",
+            "State text",
+            "Is this true?"
+        ]).unwrap();
+
+        let (_, body) = build_request_body(&args).unwrap();
+        
+        assert_eq!(body["state"], "State text");
+        assert_eq!(body["questions"]["q1"]["type"], "noul");
+        assert_eq!(body["questions"]["q1"]["instructions"], "Is this true?");
+        assert!(body["questions"]["q1"]["criteria"].is_null());
+    }
+
+    #[test]
+    fn test_shorthand_choice() {
+        let args = Args::try_parse_from(vec![
+            "jev",
+            "--token", "dummy",
+            "State text",
+            "Which option?",
+            "First Option",
+            "Second Option"
+        ]).unwrap();
+
+        let (_, body) = build_request_body(&args).unwrap();
+        
+        assert_eq!(body["state"], "State text");
+        assert_eq!(body["questions"]["q1"]["type"], "choice");
+        assert_eq!(body["questions"]["q1"]["instructions"], "Which option?");
+        assert_eq!(body["questions"]["q1"]["criteria"]["A"], "First Option");
+        assert_eq!(body["questions"]["q1"]["criteria"]["B"], "Second Option");
+    }
+
+    #[test]
+    fn test_shorthand_score() {
+        let args = Args::try_parse_from(vec![
+            "jev",
+            "--token", "dummy",
+            "State text",
+            "Rate it",
+            "--scale", "Bad", "Good", "Excellent"
+        ]).unwrap();
+
+        let (_, body) = build_request_body(&args).unwrap();
+        
+        assert_eq!(body["state"], "State text");
+        assert_eq!(body["questions"]["q1"]["type"], "score");
+        assert_eq!(body["questions"]["q1"]["instructions"], "Rate it");
+        assert_eq!(body["questions"]["q1"]["criteria"][0], "Bad");
+        assert_eq!(body["questions"]["q1"]["criteria"][2], "Excellent");
+    }
+
+    #[test]
+    fn test_explicit_flags() {
+        let args = Args::try_parse_from(vec![
+            "jev",
+            "--token", "dummy",
+            "--state", "Explicit state",
+            "--instructions", "Explicit instr",
+            "--type", "score",
+            "--criteria", "[\"Low\", \"High\"]"
+        ]).unwrap();
+
+        let (_, body) = build_request_body(&args).unwrap();
+        
+        assert_eq!(body["state"], "Explicit state");
+        assert_eq!(body["questions"]["q1"]["type"], "score");
+        assert_eq!(body["questions"]["q1"]["instructions"], "Explicit instr");
+        assert_eq!(body["questions"]["q1"]["criteria"][0], "Low");
+        assert_eq!(body["questions"]["q1"]["criteria"][1], "High");
+    }
+
+    #[test]
+    fn test_openrouter_defaults() {
+        let args = Args::try_parse_from(vec![
+            "jev",
+            "--token", "dummy",
+            "--provider", "openrouter",
+            "State text",
+            "Is this true?"
+        ]).unwrap();
+
+        let (endpoint, body) = build_request_body(&args).unwrap();
+        
+        assert_eq!(endpoint, "https://openrouter.ai/api/alpha/decisions");
+        assert_eq!(body["model"], "typesafe/jev-latest");
+    }
 }
