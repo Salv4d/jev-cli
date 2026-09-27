@@ -48,7 +48,7 @@ set JEV_PROVIDER=openrouter
 *(或者，您可以直接在命令中传递它们：`jev --token "..." --provider openrouter "状态" "问题？"`)*
 
 ### 模型覆盖
-默认情况下，CLI 使用 `jev-latest` 模型。如果您需要固定到特定版本（例如 `typesafe/jev-1.13-20260917`），您可以使用 `--model` 标志：
+默认情况下，CLI 在 TypeSafe 上默认使用 `jev-latest` 模型，在 OpenRouter 上默认使用 `~typesafe/jev-latest` 模型。如果您需要固定到特定版本（例如 `typesafe/jev-1.13-20260917`），您可以使用 `--model` 标志：
 ```bash
 jev --model "typesafe/jev-1.13-20260917" "我喜欢苹果。" "这提到了水果吗？"
 ```

@@ -48,7 +48,7 @@ set JEV_PROVIDER=openrouter
 *(Alternatively, you can pass these dynamically per command: `jev --token "..." --provider openrouter "State" "Question?"`)*
 
 ### Model Overrides
-By default, the CLI uses the `jev-latest` model. If you need to pin to a specific version (e.g. `typesafe/jev-1.13-20260917`), you can use the `--model` flag:
+By default, the CLI uses the `jev-latest` model for TypeSafe, and `~typesafe/jev-latest` for OpenRouter. If you need to pin to a specific version (e.g. `typesafe/jev-1.13-20260917`), you can use the `--model` flag:
 ```bash
 jev --model "typesafe/jev-1.13-20260917" "I like apples." "Does this mention fruit?"
 ```

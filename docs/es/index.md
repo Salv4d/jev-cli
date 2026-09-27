@@ -48,7 +48,7 @@ set JEV_PROVIDER=openrouter
 *(Alternativamente, puede pasarlos dinámicamente por comando: `jev --token "..." --provider openrouter "Estado" "¿Pregunta?"`)*
 
 ### Sobrescritura de Modelos
-Por defecto, el CLI usa el modelo `jev-latest`. Si necesita anclar a una versión específica (ej. `typesafe/jev-1.13-20260917`), puede usar la bandera `--model`:
+Por defecto, el CLI usa el modelo `jev-latest` en TypeSafe, y `~typesafe/jev-latest` en OpenRouter. Si necesita anclar a una versión específica (ej. `typesafe/jev-1.13-20260917`), puede usar la bandera `--model`:
 ```bash
 jev --model "typesafe/jev-1.13-20260917" "Me gustan las manzanas." "¿Menciona esto una fruta?"
 ```
